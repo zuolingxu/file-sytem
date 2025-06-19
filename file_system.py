@@ -1,20 +1,22 @@
 import os
 
 from PySide6 import QtWidgets
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QObject
 from PySide6.QtGui import QIcon
+from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QWidget, QMainWindow, QListWidgetItem, QDialog, QMenu, QLabel, QHBoxLayout, QSpacerItem
 
 from dialog import NewItemDialog
 from editor import TextEditor
 from file_system_core import FileSystem as FS, load_from_disk
-from file_system_ui import Ui_MainWindow
 
 
-class FileSystemUI(QMainWindow, Ui_MainWindow):
+class FileSystemUI(QObject):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setupUi(self)
+        self.ui = QUiLoader().load('file_system.ui')
+        with open("Ubuntu.qss", "r") as f:
+            self.ui.setStyleSheet(f.read())
         if os.path.exists("fs.pickle"):
             self.fs = load_from_disk("fs.pickle")
         else:
@@ -23,28 +25,28 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
         self.dirs = []    # 用于存储当前目录下的文件夹
         self.text_editor = TextEditor()
         self.text_editor.text_saved.connect(self.save_file)
-        self.listWidget.doubleClicked.connect(self.on_double_clicked)
-        self.listWidget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.listWidget.setUniformItemSizes(False)
-        self.listWidget.customContextMenuRequested.connect(self.show_menu)
+        self.ui.listWidget.doubleClicked.connect(self.on_double_clicked)
+        self.ui.listWidget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.ui.listWidget.setUniformItemSizes(False)
+        self.ui.listWidget.customContextMenuRequested.connect(self.show_menu)
 
-        self.new_dir_button.clicked.connect(self.new_directory_dialog)
-        self.new_file_button.clicked.connect(self.new_file_dialog)
-        self.return_button.clicked.connect(self.back_to_parent)
-        self.return_root_button.clicked.connect(self.back_to_root)
-        self.delete_button.clicked.connect(self.delete)
-        self.rename_button.clicked.connect(self.rename)
-        self.format_button.clicked.connect(self.fformat)
+        self.ui.new_dir_button.clicked.connect(self.new_directory_dialog)
+        self.ui.new_file_button.clicked.connect(self.new_file_dialog)
+        self.ui.return_button.clicked.connect(self.back_to_parent)
+        self.ui.return_root_button.clicked.connect(self.back_to_root)
+        self.ui.delete_button.clicked.connect(self.delete)
+        self.ui.rename_button.clicked.connect(self.rename)
+        self.ui.format_button.clicked.connect(self.fformat)
 
         self.list()
-        self.path_label.setText(self.fs.current_directory.name)
+        self.ui.path_label.setText(self.fs.current_directory.name)
         if self.fs.current_directory.name == "/":
-            self.return_button.setEnabled(False)
-            self.return_root_button.setEnabled(False)
+            self.ui.return_button.setEnabled(False)
+            self.ui.return_root_button.setEnabled(False)
 
     def show_menu(self, pos):
         # 创建右键菜单
-        menu = QMenu(self)
+        menu = QMenu(self.ui)
 
         # 添加菜单项
         new_file_action = menu.addAction("新建文件")
@@ -55,7 +57,7 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
         format_action = menu.addAction("格式化")
 
         # 显示菜单，并等待用户选择
-        action = menu.exec_(self.listWidget.mapToGlobal(pos))
+        action = menu.exec(self.ui.listWidget.mapToGlobal(pos))
 
         # 根据用户选择执行相应操作
         if action == new_file_action:
@@ -65,8 +67,8 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
         elif action == delete_action:
             self.delete()
         elif action == open_file_action:
-            item = self.listWidget.currentItem()
-            self.open_file(self.listWidget.itemWidget(
+            item = self.ui.listWidget.currentItem()
+            self.open_file(self.ui.listWidget.itemWidget(
                 item).layout().itemAt(0).widget().text())
         elif action == rename_action:
             self.rename()
@@ -74,7 +76,7 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
             self.fformat()
 
     def new_directory_dialog(self):
-        dialog = NewItemDialog(self)
+        dialog = NewItemDialog(self.ui)
         dialog.setWindowTitle("新建文件夹")
 
         if dialog.exec_() == QDialog.DialogCode.Accepted:
@@ -83,12 +85,12 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
                 if self.fs.make_directory(name):
                     self.list()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "错误", "文件夹已存在")
+                    QtWidgets.QMessageBox.warning(self.ui, "错误", "文件夹已存在")
         else:
             dialog.close()
 
     def new_file_dialog(self):
-        dialog = NewItemDialog(self)
+        dialog = NewItemDialog(self.ui)
         dialog.setWindowTitle("新建文件")
         if dialog.exec_() == QDialog.DialogCode.Accepted:
             name = dialog.get_input_text()
@@ -96,31 +98,31 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
                 if self.fs.create_file(name):
                     self.list()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "错误", "文件已存在")
+                    QtWidgets.QMessageBox.warning(self.ui, "错误", "文件已存在")
         else:
             dialog.close()
 
     def back_to_parent(self):
         self.fs.change_directory(self.fs.current_directory.parent.name)
         self.list()
-        self.path_label.setText(self.fs.get_current_path())
+        self.ui.path_label.setText(self.fs.get_current_path())
         if self.fs.current_directory.name == "/":
-            self.return_button.setEnabled(False)
-            self.return_root_button.setEnabled(False)
+            self.ui.return_button.setEnabled(False)
+            self.ui.return_root_button.setEnabled(False)
 
     def back_to_root(self):
         self.fs.change_directory(self.fs.root.name)
         self.list()
-        self.path_label.setText("/")
+        self.ui.path_label.setText("/")
         if self.fs.current_directory.name == "/":
-            self.return_button.setEnabled(False)
-            self.return_root_button.setEnabled(False)
+            self.ui.return_button.setEnabled(False)
+            self.ui.return_root_button.setEnabled(False)
 
     def list(self):
         """
         列出当前目录下的文件和文件夹
         """
-        self.listWidget.clear()
+        self.ui.listWidget.clear()
         for file in self.fs.current_directory.files:
             item = QListWidgetItem()
             size_label = QLabel(self.format_size(self.fs.get_file_size(file)))
@@ -139,9 +141,9 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
             layout.setContentsMargins(0, 0, 0, 0)
             widget.setLayout(layout)
             item.setSizeHint(widget.sizeHint())
-            self.listWidget.addItem(item)
+            self.ui.listWidget.addItem(item)
             item.setIcon(QIcon("resources/file.svg"))
-            self.listWidget.setItemWidget(item, widget)
+            self.ui.listWidget.setItemWidget(item, widget)
             self.files.append(file)
 
         for directory in self.fs.current_directory.subdirectories:
@@ -158,20 +160,20 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
             layout.addWidget(num_label)
             widget.setLayout(layout)
             item.setSizeHint(widget.sizeHint())
-            self.listWidget.addItem(item)
-            self.listWidget.setItemWidget(item, widget)
+            self.ui.listWidget.addItem(item)
+            self.ui.listWidget.setItemWidget(item, widget)
             self.dirs.append(directory)
 
         total, used = self.fs.get_total_and_used_space_size()
-        self.size_label.setText(
+        self.ui.size_label.setText(
             "已使用空间：" + self.format_size(used) + " / " + self.format_size(total))
 
-        self.listWidget.repaint()
-        self.size_label.repaint()
+        self.ui.listWidget.repaint()
+        self.ui.size_label.repaint()
 
     def on_double_clicked(self, index):
-        item = self.listWidget.itemFromIndex(index)
-        widget = self.listWidget.itemWidget(item)
+        item = self.ui.listWidget.itemFromIndex(index)
+        widget = self.ui.listWidget.itemWidget(item)
         name = widget.layout().itemAt(0).widget().text()
         for file in self.files:
             if file.name == name:
@@ -185,30 +187,30 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
 
     def open_file(self, name):
         data = self.fs.read_file(name)
-        self.text_editor.setWindowTitle(name)
+        self.text_editor.ui.setWindowTitle(name)
         self.text_editor.file_name = name
         self.text_editor.open_file(data.decode("utf-8"))
-        self.text_editor.show()
+        self.text_editor.ui.show()
 
     def save_file(self, text):
         if self.fs.write_file(self.text_editor.file_name,
                               bytearray(text, "utf-8")):
             self.list()
         else:
-            QtWidgets.QMessageBox.warning(self, "错误", "保存失败,空间不足")
+            QtWidgets.QMessageBox.warning(self.ui, "错误", "保存失败,空间不足")
 
     def open_directory(self, name):
-        self.return_button.setEnabled(True)
-        self.return_root_button.setEnabled(True)
+        self.ui.return_button.setEnabled(True)
+        self.ui.return_root_button.setEnabled(True)
         self.files.clear()
         self.dirs.clear()
         self.fs.change_directory(name.rstrip("/"))
         self.list()
-        self.path_label.setText(self.fs.get_current_path())
+        self.ui.path_label.setText(self.fs.get_current_path())
 
     def delete(self):
-        item = self.listWidget.currentItem()
-        name = self.listWidget.itemWidget(
+        item = self.ui.listWidget.currentItem()
+        name = self.ui.listWidget.itemWidget(
             item).layout().itemAt(0).widget().text()
         if name.endswith("/"):
             self.delete_dir(name.rstrip("/"))
@@ -235,10 +237,10 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
             return "{:.1f} GB".format(size / (1024 * 1024 * 1024))
 
     def rename(self):
-        item = self.listWidget.currentItem()
-        old_name = self.listWidget.itemWidget(
+        item = self.ui.listWidget.currentItem()
+        old_name = self.ui.listWidget.itemWidget(
             item).layout().itemAt(0).widget().text()
-        dialog = NewItemDialog(self)
+        dialog = NewItemDialog(self.ui)
         dialog.setWindowTitle("重命名")
         if dialog.exec_() == QDialog.DialogCode.Accepted:
             new_name = dialog.get_input_text()
@@ -250,15 +252,15 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
                         self.list()
                     else:
                         if err == 1:
-                            QtWidgets.QMessageBox.warning(self, "错误", "文件夹不存在")
+                            QtWidgets.QMessageBox.warning(self.ui, "错误", "文件夹不存在")
                         elif err == 2:
                             QtWidgets.QMessageBox.warning(
-                                self, "错误", "新文件夹名不能与旧文件夹名相同")
+                                self.ui, "错误", "新文件夹名不能与旧文件夹名相同")
                         elif err == 3:
                             QtWidgets.QMessageBox.warning(
-                                self, "错误", "新文件夹名已存在")
+                                self.ui, "错误", "新文件夹名已存在")
                 else:
-                    QtWidgets.QMessageBox.warning(self, "错误", "名字不能为空")
+                    QtWidgets.QMessageBox.warning(self.ui, "错误", "名字不能为空")
             else:
                 if new_name:
                     result, err = self.fs.rename_file(old_name, new_name)
@@ -266,15 +268,15 @@ class FileSystemUI(QMainWindow, Ui_MainWindow):
                         self.list()
                     else:
                         if err == 1:
-                            QtWidgets.QMessageBox.warning(self, "错误", "文件不存在")
+                            QtWidgets.QMessageBox.warning(self.ui, "错误", "文件不存在")
                         elif err == 2:
                             QtWidgets.QMessageBox.warning(
-                                self, "错误", "新文件名不能与旧文件名相同")
+                                self.ui, "错误", "新文件名不能与旧文件名相同")
                         elif err == 3:
                             QtWidgets.QMessageBox.warning(
-                                self, "错误", "新文件名已存在")
+                                self.ui, "错误", "新文件名已存在")
                 else:
-                    QtWidgets.QMessageBox.warning(self, "错误", "名字不能为空")
+                    QtWidgets.QMessageBox.warning(self.ui, "错误", "名字不能为空")
         else:
             dialog.close()
 
@@ -288,8 +290,8 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     ui = FileSystemUI()
     ui.list()
-    ui.show()
-    flag = app.exec_()
+    ui.ui.show()
+    flag = app.exec()
     ui.fs.save_to_disk("fs.pickle")
     sys.exit(flag)
 

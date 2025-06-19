@@ -1,20 +1,23 @@
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PySide6.QtGui import QShortcut
-from editor_ui import Ui_MainWindow
-from PySide6.QtCore import Signal
+
+from PySide6.QtCore import Signal, QObject
 from PySide6.QtGui import QKeySequence
+from PySide6.QtGui import QShortcut
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 
-class TextEditor(QMainWindow, Ui_MainWindow):
+class TextEditor(QObject):
     text_saved = Signal(str)
 
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
-        self.textEdit.setText("")
-        self.save_button.clicked.connect(self.save_file)
-        self.textEdit.textChanged.connect(self.modified)
+        self.ui = QUiLoader().load('editor.ui')
+        with open("Ubuntu.qss", "r") as f:
+            self.ui.setStyleSheet(f.read())
+        self.ui.textEdit.setText("")
+        self.ui.save_button.clicked.connect(self.save_file)
+        self.ui.textEdit.textChanged.connect(self.modified)
         self.is_saved = True
         self.file_name = ""
         self.shortcut_save = QShortcut(QKeySequence("Ctrl+S"), self)
@@ -22,23 +25,23 @@ class TextEditor(QMainWindow, Ui_MainWindow):
 
     def modified(self):
         self.is_saved = False
-        self.setWindowTitle(f"{self.file_name} *")
+        self.ui.setWindowTitle(f"{self.file_name} *")
 
     def open_file(self, text):
-        self.textEdit.setText(text)
-        self.setWindowTitle(self.file_name)
+        self.ui.textEdit.setText(text)
+        self.ui.setWindowTitle(self.file_name)
 
     def save_file(self):
         if self.is_saved:
             return
-        self.text_saved.emit(self.textEdit.toPlainText())
+        self.text_saved.emit(self.ui.textEdit.toPlainText())
         self.is_saved = True
-        self.setWindowTitle(self.file_name)
+        self.ui.setWindowTitle(self.file_name)
 
     def closeEvent(self, event):
-        if self.textEdit.document().isModified() and not self.is_saved:
+        if self.ui.textEdit.document().isModified() and not self.is_saved:
             reply = QMessageBox.question(
-                self, "保存文件", "是否保存文件？",
+                self.ui, "保存文件", "是否保存文件？",
                 QMessageBox.StandardButton.Yes |
                 QMessageBox.StandardButton.No |
                 QMessageBox.StandardButton.Cancel
@@ -54,5 +57,5 @@ class TextEditor(QMainWindow, Ui_MainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     editor = TextEditor()
-    editor.show()
-    sys.exit(app.exec_())
+    editor.ui.show()
+    sys.exit(app.exec())
