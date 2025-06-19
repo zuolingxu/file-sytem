@@ -387,8 +387,22 @@ if __name__ == '__main__':
             fs.remove_directory(command_list[1])
         elif command_list[0] == "exit":
             break
+        elif command_list[0] == "pwd":
+            print(fs.get_current_path())
+        elif command_list[0] == "help":
+            print("Available commands:")
+            print("touch <filename> - Create a new file")
+            print("edit <filename> <data> - Write data to a file")
+            print("cat <filename> - Read a file")
+            print("rm <filename> - Delete a file")
+            print("ls - List files and directories in the current directory")
+            print("cd <directory_name> - Change to a directory")
+            print("mkdir <directory_name> - Create a new directory")
+            print("rmdir <directory_name> - Remove a directory")
+            print("pwd - Print the current working directory")
+            print("exit - Exit the file system")
         else:
-            print("Unknown command: ", command_list[0])
+            print("Unknown command: ", command_list[0], "Use 'help' for help")
             continue
 
     fs.save_to_disk("fs.pickle")
