@@ -1,12 +1,13 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QAction, QFileDialog, QPushButton, QVBoxLayout, QMessageBox, QShortcut
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PySide6.QtGui import QShortcut
 from editor_ui import Ui_MainWindow
-from PyQt5.QtCore import pyqtSignal, QObject
-from PyQt5.QtGui import QKeySequence
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QKeySequence
 
 
 class TextEditor(QMainWindow, Ui_MainWindow):
-    text_saved = pyqtSignal(str)
+    text_saved = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -37,13 +38,17 @@ class TextEditor(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         if self.textEdit.document().isModified() and not self.is_saved:
             reply = QMessageBox.question(
-                self, "保存文件", "是否保存文件？", QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-            if reply == QMessageBox.Yes:
+                self, "保存文件", "是否保存文件？",
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No |
+                QMessageBox.StandardButton.Cancel
+            )
+            if reply == QMessageBox.StandardButton.Yes:
                 self.save_file()
-            elif reply == QMessageBox.Cancel:
+            elif reply == QMessageBox.StandardButton.Cancel:
                 event.ignore()
                 return
-        event.accept()
+            event.accept()
 
 
 if __name__ == "__main__":

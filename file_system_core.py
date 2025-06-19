@@ -323,6 +323,9 @@ if __name__ == '__main__':
         command = input()
         command_list = command.split()
         if command_list[0] == "touch":
+            if len(command_list) < 2:
+                print("Usage: touch <filename>")
+                continue
             fs.create_file(command_list[1])
             print("file created\n")
         elif command_list[0] == "edit":
@@ -334,6 +337,9 @@ if __name__ == '__main__':
             else:
                 print("File not found\n")
         elif command_list[0] == "cat":
+            if len(command_list) < 2:
+                print("Usage: cat <filename>")
+                continue
             data = fs.read_file(command_list[1])
             if data:
                 print(data.decode("utf-8"))
@@ -342,6 +348,9 @@ if __name__ == '__main__':
                 print("File not found")
                 print()
         elif command_list[0] == "rm":
+            if len(command_list) < 2:
+                print("Usage: rm <filename>")
+                continue
             if fs.delete_file(command_list[1]):
                 print("File deleted")
                 print()
@@ -362,12 +371,24 @@ if __name__ == '__main__':
                       f"{item.inode.file_size} bytes\t\t{item.inode.mtime}")
             print()
         elif command_list[0] == "cd":
+            if len(command_list) < 2:
+                print("Usage: cd <directory_name>")
+                continue
             fs.change_directory(command_list[1])
         elif command_list[0] == "mkdir":
+            if len(command_list) < 2:
+                print("Usage: mkdir <directory_name>")
+                continue
             fs.make_directory(command_list[1])
         elif command_list[0] == "rmdir":
+            if len(command_list) < 2:
+                print("Usage: rmdir <directory_name>")
+                continue
             fs.remove_directory(command_list[1])
         elif command_list[0] == "exit":
             break
+        else:
+            print("Unknown command: ", command_list[0])
+            continue
 
     fs.save_to_disk("fs.pickle")

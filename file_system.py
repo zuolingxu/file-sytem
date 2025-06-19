@@ -1,15 +1,17 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget, QMainWindow, QListWidget, QListWidgetItem, QDialog, QMenu, QLabel, QHBoxLayout, QSpacerItem, QInputDialog
-from PyQt5.QtCore import Qt
-from file_system_ui import Ui_MainWindow
-from file_system_core import FileSystem as FS, File, Directory, load_from_disk
-from editor import TextEditor
-from dialog import NewItemDialog
 import os
 
+from PySide6 import QtWidgets
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QWidget, QMainWindow, QListWidgetItem, QDialog, QMenu, QLabel, QHBoxLayout, QSpacerItem
 
-class FileSystem_ui(QMainWindow, Ui_MainWindow):
+from dialog import NewItemDialog
+from editor import TextEditor
+from file_system_core import FileSystem as FS, load_from_disk
+from file_system_ui import Ui_MainWindow
+
+
+class FileSystemUI(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setupUi(self)
@@ -22,7 +24,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         self.text_editor = TextEditor()
         self.text_editor.text_saved.connect(self.save_file)
         self.listWidget.doubleClicked.connect(self.on_double_clicked)
-        self.listWidget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.listWidget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.listWidget.setUniformItemSizes(False)
         self.listWidget.customContextMenuRequested.connect(self.show_menu)
 
@@ -75,7 +77,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         dialog = NewItemDialog(self)
         dialog.setWindowTitle("新建文件夹")
 
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec_() == QDialog.DialogCode.Accepted:
             name = dialog.get_input_text()
             if name:
                 if self.fs.make_directory(name):
@@ -88,7 +90,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
     def new_file_dialog(self):
         dialog = NewItemDialog(self)
         dialog.setWindowTitle("新建文件")
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec_() == QDialog.DialogCode.Accepted:
             name = dialog.get_input_text()
             if name:
                 if self.fs.create_file(name):
@@ -129,10 +131,10 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             layout = QHBoxLayout()
             layout.addWidget(name_label)
             layout.addItem(QSpacerItem(
-                20, 5, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+                20, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
             layout.addWidget(size_label)
             layout.addItem(QSpacerItem(
-                20, 5, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+                20, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
             layout.addWidget(time_label)
             layout.setContentsMargins(0, 0, 0, 0)
             widget.setLayout(layout)
@@ -151,7 +153,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             widget = QWidget()
             layout.addWidget(name_label)
             spacer = QSpacerItem(
-                40, 5, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+                40, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
             layout.addItem(spacer)
             layout.addWidget(num_label)
             widget.setLayout(layout)
@@ -238,7 +240,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             item).layout().itemAt(0).widget().text()
         dialog = NewItemDialog(self)
         dialog.setWindowTitle("重命名")
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec_() == QDialog.DialogCode.Accepted:
             new_name = dialog.get_input_text()
             if old_name.endswith("/"):
                 if new_name:
@@ -284,7 +286,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
 def main():
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = FileSystem_ui()
+    ui = FileSystemUI()
     ui.list()
     ui.show()
     flag = app.exec_()
