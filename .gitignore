@@ -5,3 +5,5 @@
 /.vscode
 *.spec
 /Report
+*.pickle
+/third

@@ -490,24 +490,30 @@ QTextEdit {
 		background-color: #DFDDD2;
 	color: #000000;
 	selection-background-color: #0066FF;
-	selection-color: #FFFFFF;
+	selection-color: #f0f0f0;
 }
 QTimeEdit, QToolBox, QToolBox::tab, QToolBox::tab:selected {
 	color: rgb(81,72,65);
-	background-color:  #ffffff;
+	background-color:  #f0f0f0;
 }
 
-QScrollArea .QWidget {
-	color:  white;
-	background-color: #f0f0f0;
-}
-
-QScrollArea QLabel[accessing="true"]{
-    color: #FF3300;
-    background-color: #FFFF00;
-}
-
-QListWidget{
+QListWidget {
 	color:  black;
 	background-color: #f0f0f0;
+}
+
+QListWidget::item {
+	color:  black;
+	background-color: #f0f0f0;
+}
+
+QListWidget::item:selected {
+    color:  black;
+    background-color:  #99CCFF;
+    border: 1px solid #666666;
+}
+
+QListWidget::item:hover {
+    color:  black;
+    background-color:  #99CCFF;
 }

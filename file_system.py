@@ -79,7 +79,7 @@ class FileSystemUI(QObject):
         dialog = NewItemDialog(self.ui)
         dialog.setWindowTitle("新建文件夹")
 
-        if dialog.exec_() == QDialog.DialogCode.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             name = dialog.get_input_text()
             if name:
                 if self.fs.make_directory(name):
@@ -103,7 +103,8 @@ class FileSystemUI(QObject):
             dialog.close()
 
     def back_to_parent(self):
-        self.fs.change_directory(self.fs.current_directory.parent.name)
+        if self.fs.current_directory.name != "/":
+            self.fs.change_directory(self.fs.current_directory.parent.name)
         self.list()
         self.ui.path_label.setText(self.fs.get_current_path())
         if self.fs.current_directory.name == "/":
@@ -123,28 +124,6 @@ class FileSystemUI(QObject):
         列出当前目录下的文件和文件夹
         """
         self.ui.listWidget.clear()
-        for file in self.fs.current_directory.files:
-            item = QListWidgetItem()
-            size_label = QLabel(self.format_size(self.fs.get_file_size(file)))
-            time_label = QLabel(self.fs.get_file_mtime(
-                file).strftime("%Y-%m-%d %H:%M:%S"))
-            name_label = QLabel(file.name)
-            widget = QWidget()
-            layout = QHBoxLayout()
-            layout.addWidget(name_label)
-            layout.addItem(QSpacerItem(
-                20, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
-            layout.addWidget(size_label)
-            layout.addItem(QSpacerItem(
-                20, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
-            layout.addWidget(time_label)
-            layout.setContentsMargins(0, 0, 0, 0)
-            widget.setLayout(layout)
-            item.setSizeHint(widget.sizeHint())
-            self.ui.listWidget.addItem(item)
-            item.setIcon(QIcon("resources/file.svg"))
-            self.ui.listWidget.setItemWidget(item, widget)
-            self.files.append(file)
 
         for directory in self.fs.current_directory.subdirectories:
             item = QListWidgetItem()
@@ -154,8 +133,7 @@ class FileSystemUI(QObject):
             layout = QHBoxLayout()
             widget = QWidget()
             layout.addWidget(name_label)
-            spacer = QSpacerItem(
-                40, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+            spacer = QSpacerItem(40, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
             layout.addItem(spacer)
             layout.addWidget(num_label)
             widget.setLayout(layout)
@@ -163,6 +141,27 @@ class FileSystemUI(QObject):
             self.ui.listWidget.addItem(item)
             self.ui.listWidget.setItemWidget(item, widget)
             self.dirs.append(directory)
+
+        for file in self.fs.current_directory.files:
+            item = QListWidgetItem()
+            size_label = QLabel(self.format_size(self.fs.get_file_size(file)))
+            time_label = QLabel(self.fs.get_file_mtime(file).strftime("%Y-%m-%d %H:%M:%S"))
+            name_label = QLabel(file.name)
+            name_label.setMinimumSize(150, 0)
+            widget = QWidget()
+            layout = QHBoxLayout()
+            layout.addWidget(name_label)
+            layout.addItem(QSpacerItem(20, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
+            layout.addWidget(size_label)
+            layout.addItem(QSpacerItem(20, 5, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum))
+            layout.addWidget(time_label)
+            layout.setContentsMargins(0, 0, 0, 0)
+            widget.setLayout(layout)
+            item.setSizeHint(widget.sizeHint())
+            self.ui.listWidget.addItem(item)
+            item.setIcon(QIcon("resources/file.svg"))
+            self.ui.listWidget.setItemWidget(item, widget)
+            self.files.append(file)
 
         total, used = self.fs.get_total_and_used_space_size()
         self.ui.size_label.setText(
@@ -193,11 +192,11 @@ class FileSystemUI(QObject):
         self.text_editor.ui.show()
 
     def save_file(self, text):
-        if self.fs.write_file(self.text_editor.file_name,
-                              bytearray(text, "utf-8")):
+        if self.fs.write_file(self.text_editor.file_name,bytearray(text, "utf-8")):
             self.list()
         else:
             QtWidgets.QMessageBox.warning(self.ui, "错误", "保存失败,空间不足")
+        self.fs.save_to_disk("fs.pickle")
 
     def open_directory(self, name):
         self.ui.return_button.setEnabled(True)
@@ -216,14 +215,17 @@ class FileSystemUI(QObject):
             self.delete_dir(name.rstrip("/"))
         else:
             self.delete_file(name)
+        self.fs.save_to_disk("fs.pickle")
 
     def delete_file(self, name):
         self.fs.delete_file(name)
         self.list()
+        self.fs.save_to_disk("fs.pickle")
 
     def delete_dir(self, name):
         self.fs.remove_directory(name)
         self.list()
+        self.fs.save_to_disk("fs.pickle")
 
     def format_size(self, size):
         # 格式化文件大小
@@ -238,9 +240,8 @@ class FileSystemUI(QObject):
 
     def rename(self):
         item = self.ui.listWidget.currentItem()
-        old_name = self.ui.listWidget.itemWidget(
-            item).layout().itemAt(0).widget().text()
-        dialog = NewItemDialog(self.ui)
+        old_name = self.ui.listWidget.itemWidget(item).layout().itemAt(0).widget().text()
+        dialog = NewItemDialog(self.ui, old_name)
         dialog.setWindowTitle("重命名")
         if dialog.exec_() == QDialog.DialogCode.Accepted:
             new_name = dialog.get_input_text()
@@ -279,11 +280,11 @@ class FileSystemUI(QObject):
                     QtWidgets.QMessageBox.warning(self.ui, "错误", "名字不能为空")
         else:
             dialog.close()
+        self.fs.save_to_disk("fs.pickle")
 
     def fformat(self):
         self.fs.fformat()
         self.list()
-
 
 def main():
     import sys

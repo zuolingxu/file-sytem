@@ -2,12 +2,13 @@ from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayo
 
 
 class NewItemDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, content = ""):
         super().__init__(parent)
 
         # 创建标签和输入框
         self.label = QLabel("请输入名称：")
         self.input_line = QLineEdit()
+        self.input_line.setText(content)
 
         # 创建确定和取消按钮
         self.ok_button = QPushButton("确定")
